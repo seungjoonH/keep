@@ -43,8 +43,7 @@ int main(int argc, char **argv) {
     if (argc < 3) terminate(PM_UNMATCH);
   }
   else {
-    printf("%d %d\n", argc, paramCnt + 2);
-    if (argc > paramCnt + 2) terminate(PM_UNMATCH);
+    if (argc != paramCnt + 2) terminate(PM_UNMATCH);
   }
 
   if (paramCnt) strcpy(param, argv[2]);
