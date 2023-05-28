@@ -13,7 +13,7 @@
 typedef enum {
   NO_ERROR, NO_KEEP, KP_EXST, 
   PM_UNMATCH, STAT_FAIL, FILE_OPN,
-  NO_UPDT, MT_NOTE, ERR_LEN
+  NO_UPDT, MT_NOTE, VER_NF, ERR_LEN
 } ErrorType;
 
 typedef enum {
@@ -35,6 +35,7 @@ char *errMsg[ERR_LEN] = {
   "file open error",
   "nothing to update",
   "note is empty",
+  "version not found",
 };
 
 char **ignore;
@@ -63,6 +64,7 @@ int max(int x, int y);
 void loadFileList(char *path);
 void listFiles(char *filepath);
 void listDirs(char *dirpath);
+char *getDir(char *path);
 void copyFile(char *des, char *src);
 
 void terminate(ErrorType err);
@@ -72,8 +74,8 @@ void getIgnores();
 bool beIgnored(char *path);
 void getCommand(int argc, char **argv);
 void freeCommand();
-void loadTrackingfiles();
-void saveTrackingfiles();
+void loadTrackingFiles();
+void saveTrackingFiles();
 void loadCurrentVersion();
 void saveCurrentVersion();
 void saveNote(char *msg);
@@ -88,6 +90,8 @@ void versions();
 int main(int argc, char **argv) {
   ErrorType err = NO_ERROR;
 
+  if (argc == 1) terminate(PM_UNMATCH);
+
   if (strcmp(argv[1], "init")) {
     DIR *dir = opendir(".keep");
     if (!dir) terminate(NO_KEEP);
@@ -95,7 +99,6 @@ int main(int argc, char **argv) {
   }
 
   getIgnores();
-  if (argc == 1) terminate(PM_UNMATCH);
   getCommand(argc, argv);
 
   switch (cmd) {
@@ -173,7 +176,26 @@ void listDirs(char *dirpath) {
 	closedir(dir);
 }
 
+char *getDir(char *path) {
+  char *dir = malloc(strlen(path) * sizeof(char));
+
+  char *lastSlash = strrchr(path, '/');
+  if (lastSlash != NULL) {
+    size_t length = lastSlash - path + 1;
+    strncpy(dir, path, length);
+    dir[length] = '\0';
+  } else dir[0] = '\0';
+
+  return dir;
+}
+
 void copyFile(char *des, char *src) {
+  char *desdir = getDir(des);
+  mkdir(desdir, 0755);
+
+  struct stat st;
+  stat(src, &st);
+
   FILE* srcfp = fopen(src, "rb");
   FILE* desfp = fopen(des, "wb");
 
@@ -186,6 +208,7 @@ void copyFile(char *des, char *src) {
     fwrite(buf, 1, read, desfp);
   }
 
+  free(desdir);
   fclose(srcfp);
   fclose(desfp);
 }
@@ -365,7 +388,7 @@ void init() {
 
   if (alreadExist) terminate(KP_EXST);
   else {
-    int result = mkdir(".keep", 0700);
+    int result = mkdir(".keep", 0755);
 
     FILE *lvfp = fopen(".keep/latest-version", "w");
     FILE *tffp = fopen(".keep/tracking-files", "w");
@@ -473,18 +496,11 @@ void store() {
   char *desdir = (char *) malloc((strlen(".keep/") + verlen) * sizeof(char));  
   sprintf(desdir, ".keep/%d", currentVersion + 1);
   
-  mkdir(desdir, 0700);
-  
-  char *src = ".keep/tracking-files";
-  char *des = (char *) malloc((strlen(src) + verlen + 1) * sizeof(char));
-  sprintf(des, "%s/tracking-files", desdir);
-
-  copyFile(des, src);  
-  saveNote(params[0]);
+  mkdir(desdir, 0755);
   
   char *tgtdir = (char *) malloc((strlen(".keep//target") + verlen) * sizeof(char));
   sprintf(tgtdir, ".keep/%d/target", currentVersion + 1);
-  mkdir(tgtdir, 0700);
+  mkdir(tgtdir, 0755);
   
   for (int i = 0; i < trackLen; i++) {
     int slen = strlen(tgtdir) + strlen(tracking[i].filename);
@@ -496,33 +512,65 @@ void store() {
     free(target);
   }
 
-  free(desdir);
-  free(des);
-  
-  saveCurrentVersion();
-  
   for (int i = 0; i < trackLen; i++) {
     struct stat st;
     stat(tracking[i].filename, &st);
     tracking[i].modtime = st.st_mtime;
+    printf("%s %lu\n", tracking[i].filename, tracking[i].modtime);
   }
 
   printf("stored as version %d\n", currentVersion + 1);
 
   saveTrackingFiles();
+
+  char *src = ".keep/tracking-files";
+  char *des = (char *) malloc((strlen(src) + verlen + 1) * sizeof(char));
+  sprintf(des, "%s/tracking-files", desdir);
+
+  copyFile(des, src);  
+  saveNote(params[0]);
+
+  saveCurrentVersion();
   
+  free(desdir);
+  free(des);
 }
 
 // `restore` function
 void restore() {
+  loadCurrentVersion();
+  int ver = atoi(params[0]);
+  if (ver < 1 || ver > currentVersion) terminate(VER_NF);
+
+  loadFileList(".");
+  
+  char name[50];
+  sprintf(name, ".keep/%d/tracking-files", ver);
+  copyFile(".keep/tracking-files", name);
+  loadTrackingFiles();
+
+  for (int i = 0; i < listLen; i++) {
+    char *dir = getDir(fileList[i].filename);
+    remove(fileList[i].filename); remove(dir);
+  }
+
+  for (int i = 0; i < trackLen; i++) {
+    sprintf(name, ".keep/%d/target/%s", ver, tracking[i].filename);
+    struct stat st;
+    bool exist = !stat(name, &st);
+    if (exist) copyFile(tracking[i].filename, name);
+  }
+
+  printf("restored as version %d\n", ver);
 
 }
 
+// `versions` function
 void versions() {
   loadCurrentVersion();
 
   for (int i = 0; i < currentVersion; i++) {
-    char name[20], note[50];
+    char name[50], note[50];
     sprintf(name, ".keep/%d/note", i + 1);
     FILE *fp = fopen(name, "r");
     fscanf(fp, "%[^\n]", note);
