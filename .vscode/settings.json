@@ -4,6 +4,8 @@
     "bitset": "c",
     "unordered_map": "c",
     "chrono": "c",
-    "stat.h": "c"
+    "stat.h": "c",
+    "istream": "c",
+    "tuple": "c"
   }
 }
