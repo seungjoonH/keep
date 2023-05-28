@@ -13,12 +13,12 @@
 typedef enum {
   NO_ERROR, NO_KEEP, KP_EXST, 
   PM_UNMATCH, STAT_FAIL, FILE_OPN,
-  NO_UPDT, ERR_LEN
+  NO_UPDT, MT_NOTE, ERR_LEN
 } ErrorType;
 
 typedef enum {
   INIT, TRACK, UNTRACK, STORE, 
-  UNSTORE, VERSIONS, CMD_LEN
+  RESTORE, VERSIONS, CMD_LEN
 } Command;
 
 int pmNums[CMD_LEN] = { 0, INF_PM, INF_PM, 1, 1, 0 };
@@ -34,6 +34,7 @@ char *errMsg[ERR_LEN] = {
   "failed to access stat",
   "file open error",
   "nothing to update",
+  "note is empty",
 };
 
 char **ignore;
@@ -78,11 +79,11 @@ void saveCurrentVersion();
 void saveNote(char *msg);
 
 void init();
-
 void track();
 void untrack();
-
 void store();
+void restore();
+void versions();
 
 int main(int argc, char **argv) {
   ErrorType err = NO_ERROR;
@@ -102,6 +103,8 @@ int main(int argc, char **argv) {
     case TRACK: track(); break;
     case UNTRACK: untrack(); break;
     case STORE: store(); break;
+    case RESTORE: restore(); break;
+    case VERSIONS: versions(); break;
     default: break;
   }
 
@@ -438,6 +441,8 @@ void untrack() {
 
 // `store` function
 void store() {
+  if (!strlen(params[0])) terminate(MT_NOTE);
+
   loadCurrentVersion();
   loadTrackingFiles();
 
@@ -506,4 +511,22 @@ void store() {
 
   saveTrackingFiles();
   
+}
+
+// `restore` function
+void restore() {
+
+}
+
+void versions() {
+  loadCurrentVersion();
+
+  for (int i = 0; i < currentVersion; i++) {
+    char name[20], note[50];
+    sprintf(name, ".keep/%d/note", i + 1);
+    FILE *fp = fopen(name, "r");
+    fscanf(fp, "%[^\n]", note);
+    printf("%-2d %s\n", i + 1, note);
+    fclose(fp);
+  }
 }
