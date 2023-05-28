@@ -1,3 +1,11 @@
+/* VIDEO LINK */
+// 
+
+/* TEAM MEMBER */
+// Hyeon Seungjoon (21800788)
+// Song San (22000375)
+
+/* PREPROCESSORS */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -10,6 +18,7 @@
 #define INF_PM INT_MAX
 #define PM_LEN 10
 
+/* ENUMS */
 typedef enum {
   NO_ERROR, NO_KEEP, KP_EXST, 
   PM_UNMATCH, STAT_FAIL, FILE_OPN,
@@ -21,6 +30,13 @@ typedef enum {
   RESTORE, VERSIONS, CMD_LEN
 } Command;
 
+/* STRUCTURE */
+typedef struct {
+  char *filename;
+  time_t modtime;
+} FileData;
+
+/* GLOBAL VARIABLES */
 int pmNums[CMD_LEN] = { 0, INF_PM, INF_PM, 1, 1, 0 };
 char *cmds[CMD_LEN] = {
   "init", "track", "untrack",
@@ -44,11 +60,6 @@ int ignoreLen;
 char cmdStr[10], *params[PM_LEN];
 Command cmd;
 
-typedef struct {
-  char *filename;
-  time_t modtime;
-} FileData;
-
 FileData *fileList;
 int listLen = 0;
 
@@ -57,16 +68,20 @@ int trackLen = 0;
 
 unsigned int currentVersion;
 
+/* FUNCTION PROTOTYPES */
+// utility functions
 int intlen(int i);
 int min(int x, int y);
 int max(int x, int y);
 
+// file management functions
 void loadFileList(char *path);
 void listFiles(char *filepath);
 void listDirs(char *dirpath);
 char *getDir(char *path);
 void copyFile(char *des, char *src);
 
+// keep basic functions
 void terminate(ErrorType err);
 int getPmNum(char *cmdStr);
 void visParams(char **params);
@@ -80,6 +95,7 @@ void loadCurrentVersion();
 void saveCurrentVersion();
 void saveNote(char *msg);
 
+// keep main functions
 void init();
 void track();
 void untrack();
@@ -87,6 +103,7 @@ void store();
 void restore();
 void versions();
 
+/* MAIN FUNCTION */
 int main(int argc, char **argv) {
   ErrorType err = NO_ERROR;
 
@@ -115,6 +132,7 @@ int main(int argc, char **argv) {
   return err;
 }
 
+/* FUNCTIONS */
 // utility functions
 int intlen(int i) { return 1 + (i ? (int) log10(i) : 1); }
 int min(int x, int y) { return x < y ? x : y; }
@@ -379,8 +397,7 @@ void saveNote(char *msg) {
   fclose(fp);
 }
 
-
-// `init` function
+// keep main functions
 void init() {
   struct stat st;
 
@@ -399,7 +416,6 @@ void init() {
   }
 }
 
-// `track` function
 void track() {
   for (int i = 0; i < PM_LEN; i++) {
     if (!strcmp(params[i], "")) break;
@@ -429,7 +445,6 @@ void track() {
   saveTrackingFiles();
 }
 
-// `untract` function
 void untrack() {
   for (int i = 0; i < PM_LEN; i++) {
     if (!strcmp(params[i], "")) break;
@@ -462,7 +477,6 @@ void untrack() {
   saveTrackingFiles();
 }
 
-// `store` function
 void store() {
   if (!strlen(params[0])) terminate(MT_NOTE);
 
@@ -536,7 +550,6 @@ void store() {
   free(des);
 }
 
-// `restore` function
 void restore() {
   loadCurrentVersion();
   int ver = atoi(params[0]);
@@ -565,7 +578,6 @@ void restore() {
 
 }
 
-// `versions` function
 void versions() {
   loadCurrentVersion();
 
