@@ -22,7 +22,8 @@
 typedef enum {
   NO_ERROR, NO_KEEP, KP_EXST, 
   PM_UNMATCH, STAT_FAIL, FILE_OPN,
-  NO_UPDT, MT_NOTE, VER_NF, ERR_LEN
+  NO_UPDT, MT_NOTE, VER_NF, 
+  STORE_FST, ERR_LEN
 } ErrorType;
 
 typedef enum {
@@ -52,6 +53,7 @@ char *errMsg[ERR_LEN] = {
   "nothing to update",
   "note is empty",
   "version not found",
+  "modified file exists",
 };
 
 char **ignore;
@@ -66,7 +68,7 @@ int listLen = 0;
 FileData *tracking;
 int trackLen = 0;
 
-unsigned int currentVersion;
+unsigned int latestVersion;
 
 /* FUNCTION PROTOTYPES */
 // utility functions
@@ -91,8 +93,8 @@ void getCommand(int argc, char **argv);
 void freeCommand();
 void loadTrackingFiles();
 void saveTrackingFiles();
-void loadCurrentVersion();
-void saveCurrentVersion();
+void loadlatestVersion();
+void savelatestVersion();
 void saveNote(char *msg);
 
 // keep main functions
@@ -256,22 +258,26 @@ void getIgnores() {
   int count = 0;
   char line[1000];
 
-  if (!file) return;
-  while (fgets(line, 1000, file)) {
-    if (line[strlen(line) - 1] == '\n')
-      line[strlen(line) - 1] = '\0';
-    
-    char *newStr = (char *) malloc(strlen(line) + 2);
-    sprintf(newStr, "./%s", line);
-    char **temp = realloc(arr, (count + 1) * sizeof(char *));
+  if (file) { 
+    while (fgets(line, 1000, file)) {
+      if (line[strlen(line) - 1] == '\n')
+        line[strlen(line) - 1] = '\0';
+      
+      char *newStr = (char *) malloc(strlen(line) + 2);
+      sprintf(newStr, "./%s", line);
+      char **temp = realloc(arr, (count + 1) * sizeof(char *));
 
-    arr = temp;
-    arr[count++] = newStr;
+      arr = temp;
+      arr[count++] = newStr;
+    }
   }
 
-  char **temp = realloc(arr, (count + 1) * sizeof(char *));
+  char **temp = realloc(arr, (count + 4) * sizeof(char *));
   arr = temp;
   arr[count++] = "./.keep";
+  arr[count++] = "./.git";
+  arr[count++] = "./keep.c";
+  arr[count++] = "./keep";
 
   fclose(file);
 
@@ -369,27 +375,27 @@ void saveTrackingFiles() {
   fclose(tffp);
 }
 
-void loadCurrentVersion() {
+void loadlatestVersion() {
   FILE *fp = fopen(".keep/latest-version", "r");
   
   char versionStr[100];
   fscanf(fp, "%s", versionStr);
 
-  currentVersion = (unsigned int) atoi(versionStr);
+  latestVersion = (unsigned int) atoi(versionStr);
   
   fclose(fp);
 }
 
-void saveCurrentVersion() {
+void savelatestVersion() {
   FILE *fp = fopen(".keep/latest-version", "w");
-  fprintf(fp, "%d", currentVersion + 1);
+  fprintf(fp, "%d", latestVersion + 1);
   fclose(fp);
 }
 
 void saveNote(char *msg) {
-  int verlen = strlen(".keep//note") + intlen(currentVersion + 1);
+  int verlen = strlen(".keep//note") + intlen(latestVersion + 1);
   char path[verlen + 1];
-  sprintf(path, ".keep/%d/note", currentVersion + 1);
+  sprintf(path, ".keep/%d/note", latestVersion + 1);
   
   FILE *fp = fopen(path, "w");
   if (!fp) terminate(FILE_OPN);
@@ -481,7 +487,7 @@ void untrack() {
 void store() {
   if (!strlen(params[0])) terminate(MT_NOTE);
 
-  loadCurrentVersion();
+  loadlatestVersion();
   loadTrackingFiles();
 
   FileData *arr = (FileData *) malloc(trackLen * sizeof(FileData));
@@ -506,15 +512,15 @@ void store() {
 
   if (!update) terminate(NO_UPDT);
 
-  int verlen = intlen(currentVersion + 1);
+  int verlen = intlen(latestVersion + 1);
 
   char *desdir = (char *) malloc((strlen(".keep/") + verlen) * sizeof(char));  
-  sprintf(desdir, ".keep/%d", currentVersion + 1);
+  sprintf(desdir, ".keep/%d", latestVersion + 1);
   
   mkdir(desdir, 0755);
   
   char *tgtdir = (char *) malloc((strlen(".keep//target") + verlen) * sizeof(char));
-  sprintf(tgtdir, ".keep/%d/target", currentVersion + 1);
+  sprintf(tgtdir, ".keep/%d/target", latestVersion + 1);
   mkdir(tgtdir, 0755);
   
   for (int i = 0; i < trackLen; i++) {
@@ -531,10 +537,9 @@ void store() {
     struct stat st;
     stat(tracking[i].filename, &st);
     tracking[i].modtime = st.st_mtime;
-    printf("%s %lu\n", tracking[i].filename, tracking[i].modtime);
   }
 
-  printf("stored as version %d\n", currentVersion + 1);
+  printf("stored as version %d\n", latestVersion + 1);
 
   saveTrackingFiles();
 
@@ -545,18 +550,30 @@ void store() {
   copyFile(des, src);  
   saveNote(params[0]);
 
-  saveCurrentVersion();
+  savelatestVersion();
   
   free(desdir);
   free(des);
 }
 
 void restore() {
-  loadCurrentVersion();
+  loadlatestVersion();
+
   int ver = atoi(params[0]);
-  if (ver < 1 || ver > currentVersion) terminate(VER_NF);
+  if (ver < 1 || ver > latestVersion) terminate(VER_NF);
 
   loadFileList(".");
+
+  loadTrackingFiles();
+
+  bool modified = false;
+  for (int i = 0; i < trackLen; i++) {
+    struct stat st;
+    stat(tracking[i].filename, &st);
+    modified |= tracking[i].modtime < st.st_mtime;
+  }
+
+  if (modified) terminate(STORE_FST);
   
   char name[50];
   sprintf(name, ".keep/%d/tracking-files", ver);
@@ -570,19 +587,25 @@ void restore() {
 
   for (int i = 0; i < trackLen; i++) {
     sprintf(name, ".keep/%d/target/%s", ver, tracking[i].filename);
-    struct stat st;
-    bool exist = !stat(name, &st);
-    if (exist) copyFile(tracking[i].filename, name);
+    struct stat st1, st2;
+    bool exist = !stat(name, &st1);
+    if (!exist) continue;
+    copyFile(tracking[i].filename, name);
+    
+    stat(tracking[i].filename, &st2);
+    tracking[i].modtime = st2.st_mtime;
   }
+
+  saveTrackingFiles();
 
   printf("restored as version %d\n", ver);
 
 }
 
 void versions() {
-  loadCurrentVersion();
+  loadlatestVersion();
 
-  for (int i = 0; i < currentVersion; i++) {
+  for (int i = 0; i < latestVersion; i++) {
     char name[50], note[50];
     sprintf(name, ".keep/%d/note", i + 1);
     FILE *fp = fopen(name, "r");
