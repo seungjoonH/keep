@@ -515,7 +515,7 @@ void store() {
   
   for (int i = 0; i < trackLen; i++) {
     int slen = strlen(tgtdir) + strlen(tracking[i].filename);
-    char *target = (char *) malloc(slen * sizeof(char));
+    char *target = (char *) malloc(1000 * sizeof(char));
   
     sprintf(target, "%s/%s", tgtdir, tracking[i].filename);
     copyFile(target, tracking[i].filename);
