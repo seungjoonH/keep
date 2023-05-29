@@ -250,12 +250,13 @@ void visParams(char **params) {
 }
 
 void getIgnores() {
-  FILE *file = fopen(".keepIgnore", "r");
+  FILE *file = fopen(".keepignore", "r");
   char **arr;
 
   int count = 0;
   char line[1000];
 
+  if (!file) return;
   while (fgets(line, 1000, file)) {
     if (line[strlen(line) - 1] == '\n')
       line[strlen(line) - 1] = '\0';
