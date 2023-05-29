@@ -1,6 +1,6 @@
 all: keep
 
-mxxd: keep.c
+keep: keep.c
 	gcc keep.c -o keep -lm
 
 clean:
