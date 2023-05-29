@@ -164,15 +164,15 @@ void listFiles(char *filepath) {
 void listDirs(char *dirpath) {
   DIR * dir = opendir(dirpath);
 
-	if (dir == 0x0) return;
+  if (dir == 0x0) return;
 
-	for (struct dirent *i = readdir(dir); i; i = readdir(dir)) {
-		if (i->d_type != DT_DIR && i->d_type != DT_REG) continue;
+  for (struct dirent *i = readdir(dir); i; i = readdir(dir)) {
+    if (i->d_type != DT_DIR && i->d_type != DT_REG) continue;
 
-		char *filepath = (char *) malloc(strlen(dirpath) + 1 + strlen(i->d_name) + 1);
-		strcpy(filepath, dirpath);
-		strcpy(filepath + strlen(dirpath), "/");
-		strcpy(filepath + strlen(dirpath) + 1, i->d_name);
+    char *filepath = (char *) malloc(strlen(dirpath) + 1 + strlen(i->d_name) + 1);
+    strcpy(filepath, dirpath);
+    strcpy(filepath + strlen(dirpath), "/");
+    strcpy(filepath + strlen(dirpath) + 1, i->d_name);
 
     bool pass = false;
 
@@ -183,15 +183,15 @@ void listDirs(char *dirpath) {
         pass |= beIgnored(filepath);
         if (!pass) listDirs(filepath);
         break;
-        
+
       case DT_REG: listFiles(filepath); break;
       default: break;
     }
 
-		free(filepath);
-	}
+    free(filepath);
+  }
 
-	closedir(dir);
+  closedir(dir);
 }
 
 char *getDir(char *path) {
