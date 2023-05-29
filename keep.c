@@ -111,6 +111,9 @@ int main(int argc, char **argv) {
 
   if (argc == 1) terminate(PM_UNMATCH);
 
+  fileList = malloc(1000 * sizeof(FileData));
+  tracking = malloc(1000 * sizeof(FileData));
+
   if (strcmp(argv[1], "init")) {
     DIR *dir = opendir(".keep");
     if (!dir) terminate(NO_KEEP);
@@ -131,6 +134,9 @@ int main(int argc, char **argv) {
   }
 
   freeCommand();
+  free(fileList);
+  free(tracking);
+
   return err;
 }
 
@@ -155,9 +161,6 @@ void listFiles(char *filepath) {
   if (!beIgnored(filepath)) {
     char *newStr = (char *) malloc(strlen(filepath) + 1);
     strncpy(newStr, filepath, strlen(filepath) + 1);
-    FileData *temp = realloc(fileList, (listLen + 1) * sizeof(FileData));
-
-    fileList = temp;
     fileList[listLen].filename = newStr + 2 * !strncmp(newStr, "./", 2);
     fileList[listLen++].modtime = st.st_mtime;
   }
@@ -336,7 +339,7 @@ void loadTrackingFiles() {
   if (!tffp) return;
 
   char line[1000];
-  FileData *arr = NULL;
+  FileData *arr = malloc(100 * sizeof(FileData));
   int count = 0;
 
   while (fgets(line, 1000, tffp)) {
@@ -346,9 +349,6 @@ void loadTrackingFiles() {
     char *name = strtok(line, " ");
     char *time = strtok(NULL, " ");
 
-    FileData *temp = realloc(arr, (count + 1) * sizeof(FileData));
-
-    arr = temp;
     arr[count].filename = (char *) malloc(strlen(name) * sizeof(char));
     strcpy(arr[count].filename, name);
     arr[count++].modtime = (time_t) atoi(time);
@@ -436,9 +436,6 @@ void track() {
     }
 
     if (!isExist) {
-      FileData *temp = realloc(tracking, (trackLen + 1) * sizeof(FileData));
-
-      tracking = temp;
       tracking[trackLen].filename = fileList[i].filename;
       tracking[trackLen++].modtime = 0;
     }
@@ -455,7 +452,7 @@ void untrack() {
   
   loadTrackingFiles();
 
-  FileData *tempTracking = (FileData *) malloc(sizeof(FileData));
+  FileData *tempTracking = (FileData *) malloc(100 * sizeof(FileData));
   int count = 0;
 
   for (int i = 0; i < trackLen; i++) {
@@ -466,8 +463,6 @@ void untrack() {
     }
 
     if (!isExist) {
-      FileData *temp = realloc(tempTracking, (count + 1) * sizeof(FileData));
-      tempTracking = temp;
       tempTracking[count].filename = tracking[i].filename;
       tempTracking[count++].modtime = tracking[i].modtime;
     }
