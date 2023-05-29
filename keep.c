@@ -256,7 +256,7 @@ void visParams(char **params) {
 
 void getIgnores() {
   FILE *file = fopen(".keepignore", "r");
-  char **arr = (char **) malloc(100 * sizeof(char *));
+  char **arr = (char **) malloc(1000 * sizeof(char *));
 
   int count = 0;
   char line[1000];
@@ -339,7 +339,7 @@ void loadTrackingFiles() {
   if (!tffp) return;
 
   char line[1000];
-  FileData *arr = malloc(100 * sizeof(FileData));
+  FileData *arr = malloc(1000 * sizeof(FileData));
   int count = 0;
 
   while (fgets(line, 1000, tffp)) {
@@ -452,7 +452,7 @@ void untrack() {
   
   loadTrackingFiles();
 
-  FileData *tempTracking = (FileData *) malloc(100 * sizeof(FileData));
+  FileData *tempTracking = (FileData *) malloc(1000 * sizeof(FileData));
   int count = 0;
 
   for (int i = 0; i < trackLen; i++) {
