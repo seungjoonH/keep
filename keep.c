@@ -253,7 +253,7 @@ void visParams(char **params) {
 
 void getIgnores() {
   FILE *file = fopen(".keepignore", "r");
-  char **arr;
+  char **arr = (char **) malloc(100 * sizeof(char *));
 
   int count = 0;
   char line[1000];
@@ -265,15 +265,10 @@ void getIgnores() {
       
       char *newStr = (char *) malloc(strlen(line) + 2);
       sprintf(newStr, "./%s", line);
-      char **temp = realloc(arr, (count + 1) * sizeof(char *));
-
-      arr = temp;
       arr[count++] = newStr;
     }
   }
 
-  char **temp = realloc(arr, (count + 4) * sizeof(char *));
-  arr = temp;
   arr[count++] = "./.keep";
   arr[count++] = "./.git";
   arr[count++] = "./keep.c";
