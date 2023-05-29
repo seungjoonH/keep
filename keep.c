@@ -270,14 +270,14 @@ void getIgnores() {
       sprintf(newStr, "./%s", line);
       arr[count++] = newStr;
     }
+
+    fclose(file);
   }
 
   arr[count++] = "./.keep";
   arr[count++] = "./.git";
   arr[count++] = "./keep.c";
   arr[count++] = "./keep";
-
-  fclose(file);
 
   ignore = arr;
   ignoreLen = count;
