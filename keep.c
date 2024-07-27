@@ -1,5 +1,5 @@
 /* VIDEO LINK */
-// 
+// https://youtu.be/gySz7dYSMg0
 
 /* TEAM MEMBER */
 // Hyeon Seungjoon (21800788)
@@ -86,15 +86,14 @@ void copyFile(char *des, char *src);
 // keep basic functions
 void terminate(ErrorType err);
 int getPmNum(char *cmdStr);
-void visParams(char **params);
 void getIgnores();
 bool beIgnored(char *path);
 void getCommand(int argc, char **argv);
 void freeCommand();
 void loadTrackingFiles();
 void saveTrackingFiles();
-void loadlatestVersion();
-void savelatestVersion();
+void loadLatestVersion();
+void saveLatestVersion();
 void saveNote(char *msg);
 
 // keep main functions
@@ -140,13 +139,27 @@ int main(int argc, char **argv) {
   return err;
 }
 
-/* FUNCTIONS */
-// utility functions
+/// @brief Calculates the number of digits in a given integer 
+///        when it is converted to a string
+/// @param i The integer to calculate the number of digits for
+/// @return The number of digits in the integer as an integer value
 int intlen(int i) { return 1 + (i ? (int) log10(i) : 1); }
+
+/// @brief Returns the smaller of two integers
+/// @param x The first integer to compare
+/// @param y The second integer to compare
+/// @return The smaller of the two integers
 int min(int x, int y) { return x < y ? x : y; }
+
+/// @brief Returns the smaller of two integers
+/// @param x The first integer to compare
+/// @param y The second integer to compare
+/// @return The bigger of the two integers
 int max(int x, int y) { return x > y ? x : y; }
 
-// file management functions
+
+/// @brief Loads and lists files or directories based on the given path
+/// @param path The path to a file or directory
 void loadFileList(char *path) {
   struct stat st;
   if (stat(path, &st)) terminate(STAT_FAIL);
@@ -154,6 +167,8 @@ void loadFileList(char *path) {
   else if (S_ISDIR(st.st_mode)) listDirs(path);
 }
 
+/// @brief Adds a file to the fileList if it should not be ignored
+/// @param filepath The path to the file to be listed
 void listFiles(char *filepath) {
   struct stat st;
   stat(filepath, &st);
@@ -166,6 +181,8 @@ void listFiles(char *filepath) {
   }
 }
 
+/// @brief Lists the files and subdirectories within a directory
+/// @param dirpath The path to the directory to list
 void listDirs(char *dirpath) {
   DIR * dir = opendir(dirpath);
 
@@ -199,6 +216,9 @@ void listDirs(char *dirpath) {
   closedir(dir);
 }
 
+/// @brief Extracts the directory part of a given path
+/// @param path The path to extract the directory from
+/// @return The directory part of the path
 char *getDir(char *path) {
   char *dir = malloc(strlen(path) * sizeof(char));
 
@@ -212,6 +232,9 @@ char *getDir(char *path) {
   return dir;
 }
 
+/// @brief Copies the contents of one file to another
+/// @param des The destination directory path
+/// @param src The source file path
 void copyFile(char *des, char *src) {
   char *desdir = getDir(des);
   mkdir(desdir, 0755);
@@ -236,24 +259,25 @@ void copyFile(char *des, char *src) {
   fclose(desfp);
 }
 
-// keep basic functions
+
+/// @brief Terminates the program with an error message
+/// @param err The error type
 void terminate(ErrorType err) {
   fprintf(stderr, "[ERROR] %s\n", errMsg[err]);
   exit(err);
 }
 
+/// @brief Gets the number of parameters for a given command
+/// @param cmdStr The command string
+/// @return The number of parameters for the command
 int getPmNum(char *cmdStr) {
   for (int i = 0; i < CMD_LEN; i++)
     if (!strcmp(cmds[i], cmdStr)) { cmd = i; return pmNums[i]; }
   return -1;
 }
 
-void visParams(char **params) {
-  printf("Param:\n");
-  for (int i = 0; i < PM_LEN; i++) printf("%s ", params[i]);
-  printf("\n");
-}
-
+/// @brief Loads ignore patterns from a file
+/// This function reads ignore patterns from the `.keepignore` file and other default patterns, and stores them in the `ignore` array
 void getIgnores() {
   FILE *file = fopen(".keepignore", "r");
   char **arr = (char **) malloc(1000 * sizeof(char *));
@@ -283,6 +307,9 @@ void getIgnores() {
   ignoreLen = count;
 }
 
+/// @brief Checks if a path should be ignored based on ignore patterns
+/// @param path The path to check
+/// @return True if the path should be ignored, otherwise false
 bool beIgnored(char *path) {
   for (int i = 0; i < ignoreLen; i++) {
     char *temp = (char *) malloc((strlen(path) + 2) * sizeof(char));
@@ -302,6 +329,9 @@ bool beIgnored(char *path) {
   return false;
 }
 
+/// @brief Parses command line arguments and sets the command and parameters
+/// @param argc The argument count
+/// @param argv The argument vector
 void getCommand(int argc, char **argv) {
   for (int i = 0; i < PM_LEN; i++) {
     params[i] = (char *) malloc(100);
@@ -330,10 +360,12 @@ void getCommand(int argc, char **argv) {
   }
 }
 
+/// @brief Frees the memory allocated for command parameters
 void freeCommand() {
   for (int i = 0; i < PM_LEN; i++) free(params[i]);
 }
 
+/// @brief Loads tracking files from a file into the tracking array
 void loadTrackingFiles() {
   FILE *tffp = fopen(".keep/tracking-files", "r");
   if (!tffp) return;
@@ -360,6 +392,7 @@ void loadTrackingFiles() {
   fclose(tffp);
 }
 
+/// @brief Saves tracking files from the tracking array into a file
 void saveTrackingFiles() {
   FILE *tffp = fopen(".keep/tracking-files", "w");
   if (!tffp) return;
@@ -370,7 +403,8 @@ void saveTrackingFiles() {
   fclose(tffp);
 }
 
-void loadlatestVersion() {
+/// @brief Loads the latest version number from a file
+void loadLatestVersion() {
   FILE *fp = fopen(".keep/latest-version", "r");
   
   char versionStr[100];
@@ -381,12 +415,15 @@ void loadlatestVersion() {
   fclose(fp);
 }
 
-void savelatestVersion() {
+/// @brief Saves the latest version number to a file, incrementing it by one
+void saveLatestVersion() {
   FILE *fp = fopen(".keep/latest-version", "w");
   fprintf(fp, "%d", latestVersion + 1);
   fclose(fp);
 }
 
+/// @brief Saves a note for the current version
+/// @param msg The note message to save
 void saveNote(char *msg) {
   int verlen = strlen(".keep//note") + intlen(latestVersion + 1);
   char path[verlen + 1];
@@ -399,7 +436,7 @@ void saveNote(char *msg) {
   fclose(fp);
 }
 
-// keep main functions
+/// @brief Initializes the .keep directory and files if they do not exist
 void init() {
   struct stat st;
 
@@ -418,6 +455,7 @@ void init() {
   }
 }
 
+/// @brief Tracks the specified files by adding them to the tracking list
 void track() {
   for (int i = 0; i < PM_LEN; i++) {
     if (!strcmp(params[i], "")) break;
@@ -444,6 +482,7 @@ void track() {
   saveTrackingFiles();
 }
 
+/// @brief Untracks the specified files by removing them from the tracking list
 void untrack() {
   for (int i = 0; i < PM_LEN; i++) {
     if (!strcmp(params[i], "")) break;
@@ -474,10 +513,11 @@ void untrack() {
   saveTrackingFiles();
 }
 
+/// @brief Stores the tracked files into the .keep directory as a new version
 void store() {
   if (!strlen(params[0])) terminate(MT_NOTE);
 
-  loadlatestVersion();
+  loadLatestVersion();
   loadTrackingFiles();
 
   FileData *arr = (FileData *) malloc(trackLen * sizeof(FileData));
@@ -540,14 +580,16 @@ void store() {
   copyFile(des, src);  
   saveNote(params[0]);
 
-  savelatestVersion();
+  saveLatestVersion();
   
   free(desdir);
   free(des);
 }
 
+/// @brief Restores the tracked files to a specified version
+/// @param version The version number to restore
 void restore() {
-  loadlatestVersion();
+  loadLatestVersion();
 
   int ver = atoi(params[0]);
   if (ver < 1 || ver > latestVersion) terminate(VER_NF);
@@ -592,8 +634,9 @@ void restore() {
 
 }
 
+/// @brief Displays all stored versions and their notes
 void versions() {
-  loadlatestVersion();
+  loadLatestVersion();
 
   for (int i = 0; i < latestVersion; i++) {
     char name[50], note[50];
